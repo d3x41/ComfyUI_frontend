@@ -79,7 +79,7 @@ export const useLitegraphService = () => {
         this.#addOutputs(ComfyNode.nodeData.outputs)
         this.#setInitialSize()
         this.serialize_widgets = true
-        extensionService.invokeExtensionsAsync('nodeCreated', this)
+        void extensionService.invokeExtensionsAsync('nodeCreated', this)
       }
 
       /**
@@ -147,8 +147,6 @@ export const useLitegraphService = () => {
           widget.label = st(nameKey, widget.label ?? inputName)
           widget.options ??= {}
           Object.assign(widget.options, {
-            inputIsOptional: inputSpec.isOptional,
-            forceInput: inputSpec.forceInput,
             advanced: inputSpec.advanced,
             hidden: inputSpec.hidden
           })

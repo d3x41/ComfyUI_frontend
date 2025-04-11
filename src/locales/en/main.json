@@ -111,6 +111,8 @@
   "manager": {
     "title": "Custom Nodes Manager",
     "failed": "Failed ({count})",
+    "noNodesFound": "No nodes found",
+    "noNodesFoundDescription": "The pack's nodes either could not be parsed, or the pack is a frontend extension only and doesn't have any nodes.",
     "installationQueue": "Installation Queue",
     "changingVersion": "Changing version from {from} to {to}",
     "dependencies": "Dependencies",
@@ -152,8 +154,10 @@
       "unknown": "Unknown"
     },
     "sort": {
-      "rating": "Rating",
-      "downloads": "Most Popular"
+      "downloads": "Most Popular",
+      "publisher": "Publisher",
+      "created": "Newest",
+      "updated": "Updated Recently"
     },
     "filter": {
       "nodePack": "Node Pack",
@@ -607,6 +611,7 @@
     "Delete Selected Items": "Delete Selected Items",
     "Fit view to selected nodes": "Fit view to selected nodes",
     "Reset View": "Reset View",
+    "Resize Selected Nodes": "Resize Selected Nodes",
     "Canvas Toggle Link Visibility": "Canvas Toggle Link Visibility",
     "Canvas Toggle Lock": "Canvas Toggle Lock",
     "Pin/Unpin Selected Items": "Pin/Unpin Selected Items",

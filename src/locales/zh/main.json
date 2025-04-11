@@ -428,6 +428,8 @@
     "loadingVersions": "正在加载版本...",
     "nightlyVersion": "每夜",
     "noDescription": "无可用描述",
+    "noNodesFound": "未找到节点",
+    "noNodesFoundDescription": "无法解析包的节点，或者该包仅为前端扩展，没有任何节点。",
     "noResultsFound": "未找到符合您搜索的结果。",
     "nodePack": "节点包",
     "packsSelected": "选定的包",
@@ -436,8 +438,10 @@
     "searchPlaceholder": "搜索",
     "selectVersion": "选择版本",
     "sort": {
+      "created": "最新",
       "downloads": "最受欢迎",
-      "rating": "评级"
+      "publisher": "出版商",
+      "updated": "最近更新"
     },
     "status": {
       "active": "活跃",
@@ -558,6 +562,7 @@
     "Refresh Node Definitions": "刷新节点定义",
     "Reinstall": "重新安装",
     "Reset View": "重置视图",
+    "Resize Selected Nodes": "调整选定节点的大小",
     "Restart": "重启",
     "Save": "保存",
     "Save As": "另存为",

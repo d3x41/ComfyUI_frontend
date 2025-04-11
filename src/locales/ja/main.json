@@ -428,6 +428,8 @@
     "loadingVersions": "バージョンを読み込んでいます...",
     "nightlyVersion": "ナイトリー",
     "noDescription": "説明はありません",
+    "noNodesFound": "ノードが見つかりません",
+    "noNodesFoundDescription": "パックのノードは解析できなかったか、パックがフロントエンドの拡張機能のみでノードがない可能性があります。",
     "noResultsFound": "検索に一致する結果が見つかりませんでした。",
     "nodePack": "ノードパック",
     "packsSelected": "選択したパック",
@@ -436,8 +438,10 @@
     "searchPlaceholder": "検索",
     "selectVersion": "バージョンを選択",
     "sort": {
+      "created": "最新",
       "downloads": "最も人気",
-      "rating": "評価"
+      "publisher": "出版社",
+      "updated": "最近更新"
     },
     "status": {
       "active": "アクティブ",
@@ -558,6 +562,7 @@
     "Refresh Node Definitions": "ノード定義を更新",
     "Reinstall": "再インストール",
     "Reset View": "ビューをリセット",
+    "Resize Selected Nodes": "選択したノードのサイズ変更",
     "Restart": "再起動",
     "Save": "保存",
     "Save As": "名前を付けて保存",

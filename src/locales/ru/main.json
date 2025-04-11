@@ -428,6 +428,8 @@
     "loadingVersions": "Загрузка версий...",
     "nightlyVersion": "Ночная",
     "noDescription": "Описание отсутствует",
+    "noNodesFound": "Узлы не найдены",
+    "noNodesFoundDescription": "Узлы пакета не могут быть проанализированы, или пакет является только расширением интерфейса и не имеет узлов.",
     "noResultsFound": "По вашему запросу ничего не найдено.",
     "nodePack": "Пакет Узлов",
     "packsSelected": "Выбрано пакетов",
@@ -436,8 +438,10 @@
     "searchPlaceholder": "Поиск",
     "selectVersion": "Выберите версию",
     "sort": {
+      "created": "Новейшие",
       "downloads": "Самые популярные",
-      "rating": "Рейтинг"
+      "publisher": "Издатель",
+      "updated": "Недавно обновленные"
     },
     "status": {
       "active": "Активный",
@@ -558,6 +562,7 @@
     "Refresh Node Definitions": "Обновить определения нод",
     "Reinstall": "Переустановить",
     "Reset View": "Сбросить вид",
+    "Resize Selected Nodes": "Изменить размер выбранных узлов",
     "Restart": "Перезапустить",
     "Save": "Сохранить",
     "Save As": "Сохранить как",

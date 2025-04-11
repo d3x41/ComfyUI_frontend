@@ -14,8 +14,8 @@
     <div class="flex flex-1 relative overflow-hidden">
       <ManagerNavSidebar
         v-if="isSideNavOpen"
-        :tabs="tabs"
         v-model:selectedTab="selectedTab"
+        :tabs="tabs"
       />
       <div
         class="flex-1 overflow-auto pr-80"
@@ -29,7 +29,8 @@
           <RegistrySearchBar
             v-model:searchQuery="searchQuery"
             v-model:searchMode="searchMode"
-            :searchResults="searchResults"
+            v-model:sortField="sortField"
+            :search-results="searchResults"
             :suggestions="suggestions"
           />
           <div class="flex-1 overflow-auto">
@@ -56,16 +57,16 @@
               <VirtualGrid
                 :items="resultsWithKeys"
                 :buffer-rows="3"
-                :gridStyle="GRID_STYLE"
+                :grid-style="GRID_STYLE"
                 @approach-end="onApproachEnd"
               >
                 <template #item="{ item }">
                   <PackCard
-                    @click.stop="(event) => selectNodePack(item, event)"
                     :node-pack="item"
                     :is-selected="
                       selectedNodePacks.some((pack) => pack.id === item.id)
                     "
+                    @click.stop="(event) => selectNodePack(item, event)"
                   />
                 </template>
               </VirtualGrid>
@@ -113,15 +114,12 @@ import { useRegistrySearch } from '@/composables/useRegistrySearch'
 import { useComfyManagerStore } from '@/stores/comfyManagerStore'
 import { useComfyRegistryStore } from '@/stores/comfyRegistryStore'
 import type { TabItem } from '@/types/comfyManagerTypes'
+import { ManagerTab } from '@/types/comfyManagerTypes'
 import { components } from '@/types/comfyRegistryTypes'
 
-enum ManagerTab {
-  All = 'all',
-  Installed = 'installed',
-  Workflow = 'workflow',
-  Missing = 'missing',
-  UpdateAvailable = 'updateAvailable'
-}
+const { initialTab = ManagerTab.All } = defineProps<{
+  initialTab: ManagerTab
+}>()
 
 const { t } = useI18n()
 const comfyManagerStore = useComfyManagerStore()
@@ -159,7 +157,9 @@ const tabs = ref<TabItem[]>([
     icon: 'pi-sync'
   }
 ])
-const selectedTab = ref<TabItem>(tabs.value[0])
+const selectedTab = ref<TabItem>(
+  tabs.value.find((tab) => tab.id === initialTab) || tabs.value[0]
+)
 
 const {
   searchQuery,
@@ -167,6 +167,7 @@ const {
   isLoading: isSearchLoading,
   searchResults,
   searchMode,
+  sortField,
   suggestions
 } = useRegistrySearch()
 pageNumber.value = 0
@@ -185,14 +186,16 @@ const {
   startFetchInstalled,
   filterInstalledPack,
   installedPacks,
-  isLoading: isLoadingInstalled
+  isLoading: isLoadingInstalled,
+  isReady: installedPacksReady
 } = useInstalledPacks()
 
 const {
   startFetchWorkflowPacks,
   filterWorkflowPack,
   workflowPacks,
-  isLoading: isLoadingWorkflow
+  isLoading: isLoadingWorkflow,
+  isReady: workflowPacksReady
 } = useWorkflowPacks()
 
 const filterMissingPacks = (packs: components['schemas']['Node'][]) =>
@@ -219,45 +222,68 @@ const isOutdatedPack = (pack: components['schemas']['Node']) => {
 const filterOutdatedPacks = (packs: components['schemas']['Node'][]) =>
   packs.filter(isOutdatedPack)
 
-watch([isUpdateAvailableTab, installedPacks], () => {
-  if (!isUpdateAvailableTab.value) return
+watch(
+  [isUpdateAvailableTab, installedPacks],
+  async () => {
+    if (!isUpdateAvailableTab.value) return
 
-  if (!isEmptySearch.value) {
-    displayPacks.value = filterOutdatedPacks(installedPacks.value)
-  } else if (!installedPacks.value.length) {
-    startFetchInstalled()
-  } else {
-    displayPacks.value = filterOutdatedPacks(installedPacks.value)
-  }
-})
+    if (!isEmptySearch.value) {
+      displayPacks.value = filterOutdatedPacks(installedPacks.value)
+    } else if (!installedPacks.value.length) {
+      await startFetchInstalled()
+    } else {
+      displayPacks.value = filterOutdatedPacks(installedPacks.value)
+    }
+  },
+  { immediate: true }
+)
 
-watch([isInstalledTab, installedPacks], () => {
-  if (!isInstalledTab.value) return
+watch(
+  [isInstalledTab, installedPacks],
+  async () => {
+    if (!isInstalledTab.value) return
 
-  if (!isEmptySearch.value) {
-    displayPacks.value = filterInstalledPack(searchResults.value)
-  } else if (!installedPacks.value.length) {
-    startFetchInstalled()
-  } else {
-    displayPacks.value = installedPacks.value
-  }
-})
+    if (!isEmptySearch.value) {
+      displayPacks.value = filterInstalledPack(searchResults.value)
+    } else if (
+      !installedPacks.value.length &&
+      !installedPacksReady.value &&
+      !isLoadingInstalled.value
+    ) {
+      await startFetchInstalled()
+    } else {
+      displayPacks.value = installedPacks.value
+    }
+  },
+  { immediate: true }
+)
 
-watch([isMissingTab, isWorkflowTab, workflowPacks], () => {
-  if (!isWorkflowTab.value && !isMissingTab.value) return
+watch(
+  [isMissingTab, isWorkflowTab, workflowPacks, installedPacks],
+  async () => {
+    if (!isWorkflowTab.value && !isMissingTab.value) return
 
-  if (!isEmptySearch.value) {
-    displayPacks.value = isMissingTab.value
-      ? filterMissingPacks(filterWorkflowPack(searchResults.value))
-      : filterWorkflowPack(searchResults.value)
-  } else if (!workflowPacks.value.length) {
-    startFetchWorkflowPacks()
-  } else {
-    displayPacks.value = isMissingTab.value
-      ? filterMissingPacks(workflowPacks.value)
-      : workflowPacks.value
-  }
-})
+    if (!isEmptySearch.value) {
+      displayPacks.value = isMissingTab.value
+        ? filterMissingPacks(filterWorkflowPack(searchResults.value))
+        : filterWorkflowPack(searchResults.value)
+    } else if (
+      !workflowPacks.value.length &&
+      !isLoadingWorkflow.value &&
+      !workflowPacksReady.value
+    ) {
+      await startFetchWorkflowPacks()
+      if (isMissingTab.value) {
+        await startFetchInstalled()
+      }
+    } else {
+      displayPacks.value = isMissingTab.value
+        ? filterMissingPacks(workflowPacks.value)
+        : workflowPacks.value
+    }
+  },
+  { immediate: true }
+)
 
 watch([isAllTab, searchResults], () => {
   if (!isAllTab.value) return
@@ -267,25 +293,33 @@ watch([isAllTab, searchResults], () => {
 const onResultsChange = () => {
   switch (selectedTab.value?.id) {
     case ManagerTab.Installed:
-      displayPacks.value = filterInstalledPack(searchResults.value)
+      displayPacks.value = isEmptySearch.value
+        ? installedPacks.value
+        : filterInstalledPack(searchResults.value)
       break
     case ManagerTab.Workflow:
-      displayPacks.value = filterWorkflowPack(searchResults.value)
+      displayPacks.value = isEmptySearch.value
+        ? workflowPacks.value
+        : filterWorkflowPack(searchResults.value)
       break
     case ManagerTab.Missing:
-      displayPacks.value = filterMissingPacks(
-        filterWorkflowPack(searchResults.value)
-      )
+      if (!isEmptySearch.value) {
+        displayPacks.value = filterMissingPacks(
+          filterWorkflowPack(searchResults.value)
+        )
+      }
       break
     case ManagerTab.UpdateAvailable:
-      displayPacks.value = filterOutdatedPacks(searchResults.value)
+      displayPacks.value = isEmptySearch.value
+        ? filterOutdatedPacks(installedPacks.value)
+        : filterOutdatedPacks(searchResults.value)
       break
     default:
       displayPacks.value = searchResults.value
   }
 }
 
-watch(searchResults, onResultsChange, { flush: 'pre' })
+watch(searchResults, onResultsChange, { flush: 'post' })
 watch(() => comfyManagerStore.installedPacksIds, onResultsChange)
 
 const isLoading = computed(() => {

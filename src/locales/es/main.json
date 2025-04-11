@@ -428,6 +428,8 @@
     "loadingVersions": "Cargando versiones...",
     "nightlyVersion": "Nocturna",
     "noDescription": "No hay descripción disponible",
+    "noNodesFound": "No se encontraron nodos",
+    "noNodesFoundDescription": "Los nodos del paquete no se pudieron analizar, o el paquete es solo una extensión de frontend y no tiene ningún nodo.",
     "noResultsFound": "No se encontraron resultados que coincidan con tu búsqueda.",
     "nodePack": "Paquete de Nodos",
     "packsSelected": "Paquetes Seleccionados",
@@ -436,8 +438,10 @@
     "searchPlaceholder": "Buscar",
     "selectVersion": "Seleccionar Versión",
     "sort": {
+      "created": "Más reciente",
       "downloads": "Más Popular",
-      "rating": "Calificación"
+      "publisher": "Editor",
+      "updated": "Actualizado recientemente"
     },
     "status": {
       "active": "Activo",
@@ -558,6 +562,7 @@
     "Refresh Node Definitions": "Actualizar definiciones de nodo",
     "Reinstall": "Reinstalar",
     "Reset View": "Restablecer vista",
+    "Resize Selected Nodes": "Redimensionar Nodos Seleccionados",
     "Restart": "Reiniciar",
     "Save": "Guardar",
     "Save As": "Guardar como",

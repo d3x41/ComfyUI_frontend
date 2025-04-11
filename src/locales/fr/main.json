@@ -428,6 +428,8 @@
     "loadingVersions": "Chargement des versions...",
     "nightlyVersion": "Nocturne",
     "noDescription": "Aucune description disponible",
+    "noNodesFound": "Aucun nœud trouvé",
+    "noNodesFoundDescription": "Les nœuds du pack n'ont pas pu être analysés, ou le pack est une extension frontend uniquement et n'a pas de nœuds.",
     "noResultsFound": "Aucun résultat trouvé correspondant à votre recherche.",
     "nodePack": "Pack de Nœuds",
     "packsSelected": "Packs sélectionnés",
@@ -436,8 +438,10 @@
     "searchPlaceholder": "Recherche",
     "selectVersion": "Sélectionner la version",
     "sort": {
+      "created": "Le plus récent",
       "downloads": "Le plus populaire",
-      "rating": "Évaluation"
+      "publisher": "Éditeur",
+      "updated": "Mis à jour récemment"
     },
     "status": {
       "active": "Actif",
@@ -558,6 +562,7 @@
     "Refresh Node Definitions": "Actualiser les définitions de nœud",
     "Reinstall": "Réinstaller",
     "Reset View": "Réinitialiser la vue",
+    "Resize Selected Nodes": "Redimensionner les nœuds sélectionnés",
     "Restart": "Redémarrer",
     "Save": "Enregistrer",
     "Save As": "Enregistrer sous",

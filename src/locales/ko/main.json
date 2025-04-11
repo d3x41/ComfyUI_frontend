@@ -428,6 +428,8 @@
     "loadingVersions": "버전 로딩 중...",
     "nightlyVersion": "최신 테스트 버전(nightly)",
     "noDescription": "설명이 없습니다",
+    "noNodesFound": "노드를 찾을 수 없습니다",
+    "noNodesFoundDescription": "팩의 노드를 파싱할 수 없거나, 팩이 프론트엔드 확장만을 가지고 있어서 노드가 없습니다.",
     "noResultsFound": "검색과 일치하는 결과가 없습니다.",
     "nodePack": "노드 팩",
     "packsSelected": "선택한 노드 팩",
@@ -436,8 +438,10 @@
     "searchPlaceholder": "검색",
     "selectVersion": "버전 선택",
     "sort": {
+      "created": "최신",
       "downloads": "가장 인기 있는",
-      "rating": "평점"
+      "publisher": "출판사",
+      "updated": "최근 업데이트"
     },
     "status": {
       "active": "활성",
@@ -558,6 +562,7 @@
     "Refresh Node Definitions": "노드 정의 새로 고침",
     "Reinstall": "재설치",
     "Reset View": "보기 초기화",
+    "Resize Selected Nodes": "선택된 노드 크기 조정",
     "Restart": "재시작",
     "Save": "저장",
     "Save As": "다른 이름으로 저장",
