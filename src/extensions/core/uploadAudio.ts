@@ -1,4 +1,4 @@
-import type { IWidget, LGraphNode } from '@comfyorg/litegraph'
+import type { LGraphNode } from '@comfyorg/litegraph'
 import type { IStringWidget } from '@comfyorg/litegraph/dist/types/widgets'
 
 import { useNodeDragAndDrop } from '@/composables/node/useNodeDragAndDrop'
@@ -90,7 +90,13 @@ app.registerExtension({
   name: 'Comfy.AudioWidget',
   async beforeRegisterNodeDef(nodeType, nodeData) {
     if (
-      ['LoadAudio', 'SaveAudio', 'PreviewAudio'].includes(
+      [
+        'LoadAudio',
+        'SaveAudio',
+        'PreviewAudio',
+        'SaveAudioMP3',
+        'SaveAudioOpus'
+      ].includes(
         // @ts-expect-error fixme ts strict error
         nodeType.prototype.comfyClass
       )
@@ -164,11 +170,11 @@ app.registerExtension({
         // The widget that allows user to select file.
         // @ts-expect-error fixme ts strict error
         const audioWidget = node.widgets.find(
-          (w: IWidget) => w.name === 'audio'
+          (w) => w.name === 'audio'
         ) as IStringWidget
         // @ts-expect-error fixme ts strict error
         const audioUIWidget = node.widgets.find(
-          (w: IWidget) => w.name === 'audioUI'
+          (w) => w.name === 'audioUI'
         ) as unknown as DOMWidget<HTMLAudioElement, string>
 
         const onAudioWidgetUpdate = () => {
