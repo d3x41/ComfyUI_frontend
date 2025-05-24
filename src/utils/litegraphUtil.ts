@@ -2,8 +2,8 @@ import type { ColorOption, LGraph } from '@comfyorg/litegraph'
 import { LGraphGroup, LGraphNode, isColorable } from '@comfyorg/litegraph'
 import type { ISerialisedGraph } from '@comfyorg/litegraph/dist/types/serialisation'
 import type {
-  IComboWidget,
-  IWidget
+  IBaseWidget,
+  IComboWidget
 } from '@comfyorg/litegraph/dist/types/widgets'
 import _ from 'lodash'
 
@@ -35,11 +35,9 @@ export function isAudioNode(node: LGraphNode | undefined): boolean {
 export function addToComboValues(widget: IComboWidget, value: string) {
   if (!widget.options) widget.options = { values: [] }
   if (!widget.options.values) widget.options.values = []
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore Combo widget values may be a dictionary or legacy function type
+  // @ts-expect-error Combo widget values may be a dictionary or legacy function type
   if (!widget.options.values.includes(value)) {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore Combo widget values may be a dictionary or legacy function type
+    // @ts-expect-error Combo widget values may be a dictionary or legacy function type
     widget.options.values.push(value)
   }
 }
@@ -94,7 +92,7 @@ export function executeWidgetsCallback(
  */
 export function migrateWidgetsValues<TWidgetValue>(
   inputDefs: Record<string, InputSpec>,
-  widgets: IWidget[],
+  widgets: IBaseWidget[],
   widgetsValues: TWidgetValue[]
 ): TWidgetValue[] {
   const widgetNames = new Set(widgets.map((w) => w.name))
