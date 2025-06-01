@@ -1,4 +1,3 @@
-import ApiNodesNewsContent from '@/components/dialog/content/ApiNodesNewsContent.vue'
 import ApiNodesSignInContent from '@/components/dialog/content/ApiNodesSignInContent.vue'
 import ConfirmationDialogContent from '@/components/dialog/content/ConfirmationDialogContent.vue'
 import ErrorDialogContent from '@/components/dialog/content/ErrorDialogContent.vue'
@@ -381,29 +380,21 @@ export const useDialogService = () => {
   }
 
   /**
-   * Shows a dialog for the API nodes news.
-   * TODO: Remove the news dialog on next major feature release.
+   * Shows a dialog from a third party extension.
+   * @param options - The dialog options.
+   * @param options.key - The dialog key.
+   * @param options.title - The dialog title.
+   * @param options.headerComponent - The dialog header component.
+   * @param options.footerComponent - The dialog footer component.
+   * @param options.component - The dialog component.
+   * @param options.props - The dialog props.
+   * @returns The dialog instance and a function to close the dialog.
    */
-  function showApiNodesNewsDialog() {
-    if (localStorage.getItem('api-nodes-news-seen') === 'true') {
-      return
+  function showExtensionDialog(options: ShowDialogOptions & { key: string }) {
+    return {
+      dialog: dialogStore.showExtensionDialog(options),
+      closeDialog: () => dialogStore.closeDialog({ key: options.key })
     }
-
-    return dialogStore.showDialog({
-      key: 'api-nodes-news',
-      component: ApiNodesNewsContent,
-      props: {
-        dismissableMask: true,
-        onClose: () => {
-          dialogStore.closeDialog({ key: 'api-nodes-news' })
-          localStorage.setItem('api-nodes-news-seen', 'true')
-        }
-      },
-      dialogComponentProps: {
-        closable: false,
-        position: 'bottomright'
-      }
-    })
   }
 
   return {
@@ -421,7 +412,7 @@ export const useDialogService = () => {
     showSignInDialog,
     showTopUpCreditsDialog,
     showUpdatePasswordDialog,
-    showApiNodesNewsDialog,
+    showExtensionDialog,
     prompt,
     confirm
   }
