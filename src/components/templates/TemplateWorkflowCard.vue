@@ -2,7 +2,7 @@
   <Card
     ref="cardRef"
     :data-testid="`template-workflow-${template.name}`"
-    class="w-64 template-card rounded-2xl overflow-hidden cursor-pointer shadow-elevation-2 dark-theme:bg-dark-elevation-1 h-full"
+    class="w-64 template-card rounded-2xl overflow-hidden cursor-pointer shadow-elevation-2 dark-theme:bg-dark-elevation-1.5 h-full"
     :pt="{
       body: { class: 'p-0 h-full flex flex-col' }
     }"
@@ -20,6 +20,10 @@
               :overlay-image-src="overlayThumbnailSrc"
               :alt="title"
               :is-hovered="isHovered"
+              :is-video="
+                template.mediaType === 'video' ||
+                template.mediaSubtype === 'webp'
+              "
             />
           </template>
           <template v-else-if="template.thumbnailVariant === 'hoverDissolve'">
@@ -28,6 +32,10 @@
               :overlay-image-src="overlayThumbnailSrc"
               :alt="title"
               :is-hovered="isHovered"
+              :is-video="
+                template.mediaType === 'video' ||
+                template.mediaSubtype === 'webp'
+              "
             />
           </template>
           <template v-else>
@@ -35,6 +43,10 @@
               :src="baseThumbnailSrc"
               :alt="title"
               :is-hovered="isHovered"
+              :is-video="
+                template.mediaType === 'video' ||
+                template.mediaSubtype === 'webp'
+              "
               :hover-zoom="
                 template.thumbnailVariant === 'zoomHover'
                   ? UPSCALE_ZOOM_SCALE
@@ -52,17 +64,12 @@
     <template #content>
       <div class="flex items-center px-4 py-3">
         <div class="flex-1 flex flex-col">
-          <h3 class="line-clamp-2 text-lg font-normal mb-0 h-12" :title="title">
+          <h3 class="line-clamp-2 text-lg font-normal mb-0" :title="title">
             {{ title }}
           </h3>
           <p class="line-clamp-2 text-sm text-muted grow" :title="description">
             {{ description }}
           </p>
-        </div>
-        <div
-          class="flex md:hidden xl:flex items-center justify-center ml-4 w-10 h-10 rounded-full"
-        >
-          <i class="pi pi-angle-right text-2xl" />
         </div>
       </div>
     </template>
@@ -79,7 +86,7 @@ import AudioThumbnail from '@/components/templates/thumbnails/AudioThumbnail.vue
 import CompareSliderThumbnail from '@/components/templates/thumbnails/CompareSliderThumbnail.vue'
 import DefaultThumbnail from '@/components/templates/thumbnails/DefaultThumbnail.vue'
 import HoverDissolveThumbnail from '@/components/templates/thumbnails/HoverDissolveThumbnail.vue'
-import { api } from '@/scripts/api'
+import { useTemplateWorkflows } from '@/composables/useTemplateWorkflows'
 import { TemplateInfo } from '@/types/workflowTemplateTypes'
 
 const UPSCALE_ZOOM_SCALE = 16 // for upscale templates, exaggerate the hover zoom
@@ -95,36 +102,36 @@ const { sourceModule, loading, template } = defineProps<{
 const cardRef = ref<HTMLElement | null>(null)
 const isHovered = useElementHover(cardRef)
 
-const getThumbnailUrl = (index = '') => {
-  const basePath =
-    sourceModule === 'default'
-      ? api.fileURL(`/templates/${template.name}`)
-      : api.apiURL(`/workflow_templates/${sourceModule}/${template.name}`)
+const { getTemplateThumbnailUrl, getTemplateTitle, getTemplateDescription } =
+  useTemplateWorkflows()
 
-  // For templates from custom nodes, multiple images is not yet supported
-  const indexSuffix = sourceModule === 'default' && index ? `-${index}` : ''
-
-  return `${basePath}${indexSuffix}.${template.mediaSubtype}`
-}
+// Determine the effective source module to use (from template or prop)
+const effectiveSourceModule = computed(
+  () => template.sourceModule || sourceModule
+)
 
 const baseThumbnailSrc = computed(() =>
-  getThumbnailUrl(sourceModule === 'default' ? '1' : '')
+  getTemplateThumbnailUrl(
+    template,
+    effectiveSourceModule.value,
+    effectiveSourceModule.value === 'default' ? '1' : ''
+  )
 )
+
 const overlayThumbnailSrc = computed(() =>
-  getThumbnailUrl(sourceModule === 'default' ? '2' : '')
+  getTemplateThumbnailUrl(
+    template,
+    effectiveSourceModule.value,
+    effectiveSourceModule.value === 'default' ? '2' : ''
+  )
 )
 
-const description = computed(() => {
-  return sourceModule === 'default'
-    ? template.localizedDescription ?? ''
-    : template.description.replace(/[-_]/g, ' ').trim()
-})
-
-const title = computed(() => {
-  return sourceModule === 'default'
-    ? template.localizedTitle ?? ''
-    : template.name
-})
+const description = computed(() =>
+  getTemplateDescription(template, effectiveSourceModule.value)
+)
+const title = computed(() =>
+  getTemplateTitle(template, effectiveSourceModule.value)
+)
 
 defineEmits<{
   loadWorkflow: [name: string]

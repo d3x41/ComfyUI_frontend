@@ -36,7 +36,7 @@ export const zNumericInputOptions = zBaseInputOptions.extend({
   min: z.number().optional(),
   max: z.number().optional(),
   step: z.number().optional(),
-  // Note: Many node authors are using INT/FLOAT to pass list of INT/FLOAT.
+  /** Note: Many node authors are using INT/FLOAT to pass list of INT/FLOAT. */
   default: z.union([z.number(), z.array(z.number())]).optional(),
   display: z.enum(['slider', 'number', 'knob']).optional()
 })
@@ -219,6 +219,7 @@ export const zComfyNodeDef = z.object({
   name: z.string(),
   display_name: z.string(),
   description: z.string(),
+  help: z.string().optional(),
   category: z.string(),
   output_node: z.boolean(),
   python_module: z.string(),
@@ -227,7 +228,7 @@ export const zComfyNodeDef = z.object({
   /**
    * Whether the node is an API node. Running API nodes requires login to
    * Comfy Org account.
-   * https://www.comfy.org/faq
+   * https://docs.comfy.org/tutorials/api-nodes/overview
    */
   api_node: z.boolean().optional()
 })

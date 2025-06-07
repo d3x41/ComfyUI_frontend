@@ -118,7 +118,11 @@ class Load3d {
       options
     )
 
-    this.loaderManager = new LoaderManager(this.modelManager, this.eventManager)
+    this.loaderManager = new LoaderManager(
+      this.modelManager,
+      this.eventManager,
+      options
+    )
 
     this.recordingManager = new RecordingManager(
       this.sceneManager.scene,
@@ -156,22 +160,48 @@ class Load3d {
     this.viewHelperManager.update(delta)
     this.controlsManager.update()
 
+    this.renderMainScene()
+
+    if (this.previewManager.showPreview) {
+      this.renderPreviewScene()
+    }
+
+    this.resetViewport()
+
+    if (this.viewHelperManager.viewHelper.render) {
+      this.viewHelperManager.viewHelper.render(this.renderer)
+    }
+
+    this.INITIAL_RENDER_DONE = true
+  }
+
+  renderMainScene(): void {
+    const width = this.renderer.domElement.clientWidth
+    const height = this.renderer.domElement.clientHeight
+
+    this.renderer.setViewport(0, 0, width, height)
+    this.renderer.setScissor(0, 0, width, height)
+    this.renderer.setScissorTest(true)
+
     this.renderer.clear()
     this.sceneManager.renderBackground()
     this.renderer.render(
       this.sceneManager.scene,
       this.cameraManager.activeCamera
     )
+  }
 
-    if (this.viewHelperManager.viewHelper.render) {
-      this.viewHelperManager.viewHelper.render(this.renderer)
-    }
+  renderPreviewScene(): void {
+    this.previewManager.renderPreview()
+  }
 
-    if (this.previewManager.showPreview) {
-      this.previewManager.updatePreviewRender()
-    }
+  resetViewport(): void {
+    const width = this.renderer.domElement.clientWidth
+    const height = this.renderer.domElement.clientHeight
 
-    this.INITIAL_RENDER_DONE = true
+    this.renderer.setViewport(0, 0, width, height)
+    this.renderer.setScissor(0, 0, width, height)
+    this.renderer.setScissorTest(false)
   }
 
   private getActiveCamera(): THREE.Camera {
@@ -194,20 +224,17 @@ class Load3d {
         return
       }
 
-      if (this.previewManager.showPreview) {
-        this.previewManager.updatePreviewRender()
-      }
-
       const delta = this.clock.getDelta()
       this.viewHelperManager.update(delta)
       this.controlsManager.update()
 
-      this.renderer.clear()
-      this.sceneManager.renderBackground()
-      this.renderer.render(
-        this.sceneManager.scene,
-        this.cameraManager.activeCamera
-      )
+      this.renderMainScene()
+
+      if (this.previewManager.showPreview) {
+        this.renderPreviewScene()
+      }
+
+      this.resetViewport()
 
       if (this.viewHelperManager.viewHelper.render) {
         this.viewHelperManager.viewHelper.render(this.renderer)
@@ -229,6 +256,7 @@ class Load3d {
     return (
       this.STATUS_MOUSE_ON_NODE ||
       this.STATUS_MOUSE_ON_SCENE ||
+      this.isRecording() ||
       !this.INITIAL_RENDER_DONE
     )
   }
@@ -299,11 +327,9 @@ class Load3d {
   async setBackgroundImage(uploadPath: string): Promise<void> {
     await this.sceneManager.setBackgroundImage(uploadPath)
 
-    if (this.previewManager.previewRenderer) {
-      this.previewManager.updateBackgroundTexture(
-        this.sceneManager.backgroundTexture
-      )
-    }
+    this.previewManager.updateBackgroundTexture(
+      this.sceneManager.backgroundTexture
+    )
 
     this.forceRender()
   }
@@ -311,10 +337,7 @@ class Load3d {
   removeBackgroundImage(): void {
     this.sceneManager.removeBackgroundImage()
 
-    if (
-      this.previewManager.previewRenderer &&
-      this.previewManager.previewCamera
-    ) {
+    if (this.previewManager.previewCamera) {
       this.previewManager.updateBackgroundTexture(null)
     }
 
@@ -461,7 +484,7 @@ class Load3d {
   }
 
   public isRecording(): boolean {
-    return this.recordingManager.hasRecording()
+    return this.recordingManager.getIsRecording()
   }
 
   public getRecordingDuration(): number {
@@ -481,6 +504,14 @@ class Load3d {
   }
 
   public remove(): void {
+    this.renderer.forceContextLoss()
+    const canvas = this.renderer.domElement
+    const event = new Event('webglcontextlost', {
+      bubbles: true,
+      cancelable: true
+    })
+    canvas.dispatchEvent(event)
+
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId)
     }
