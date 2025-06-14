@@ -4,7 +4,9 @@ import {
   LGraphNode,
   LiteGraph
 } from '@comfyorg/litegraph'
+import { Point } from '@comfyorg/litegraph'
 
+import { useFirebaseAuthActions } from '@/composables/auth/useFirebaseAuthActions'
 import {
   DEFAULT_DARK_COLOR_PALETTE,
   DEFAULT_LIGHT_COLOR_PALETTE
@@ -13,7 +15,6 @@ import { t } from '@/i18n'
 import { api } from '@/scripts/api'
 import { app } from '@/scripts/app'
 import { useDialogService } from '@/services/dialogService'
-import { useFirebaseAuthService } from '@/services/firebaseAuthService'
 import { useLitegraphService } from '@/services/litegraphService'
 import { useWorkflowService } from '@/services/workflowService'
 import type { ComfyCommand } from '@/stores/commandStore'
@@ -27,12 +28,14 @@ import { useColorPaletteStore } from '@/stores/workspace/colorPaletteStore'
 import { useSearchBoxStore } from '@/stores/workspace/searchBoxStore'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
 
+const moveSelectedNodesVersionAdded = '1.22.2'
+
 export function useCoreCommands(): ComfyCommand[] {
   const workflowService = useWorkflowService()
   const workflowStore = useWorkflowStore()
   const dialogService = useDialogService()
   const colorPaletteStore = useColorPaletteStore()
-  const firebaseAuthService = useFirebaseAuthService()
+  const firebaseAuthActions = useFirebaseAuthActions()
   const toastStore = useToastStore()
   const getTracker = () => workflowStore.activeWorkflow?.changeTracker
 
@@ -56,6 +59,20 @@ export function useCoreCommands(): ComfyCommand[] {
         node.mode = mode
       }
     })
+  }
+
+  const moveSelectedNodes = (
+    positionUpdater: (pos: Point, gridSize: number) => Point
+  ) => {
+    const selectedNodes = getSelectedNodes()
+    if (selectedNodes.length === 0) return
+
+    const gridSize = useSettingStore().get('Comfy.SnapToGrid.GridSize')
+    selectedNodes.forEach((node) => {
+      node.pos = positionUpdater(node.pos, gridSize)
+    })
+    app.canvas.state.selectionChanged = true
+    app.canvas.setDirty(true, true)
   }
 
   const commands = [
@@ -310,6 +327,28 @@ export function useCoreCommands(): ComfyCommand[] {
       function: async () => {
         const batchCount = useQueueSettingsStore().batchCount
         await app.queuePrompt(-1, batchCount)
+      }
+    },
+    {
+      id: 'Comfy.QueueSelectedOutputNodes',
+      icon: 'pi pi-play',
+      label: 'Queue Selected Output Nodes',
+      versionAdded: '1.19.6',
+      function: async () => {
+        const batchCount = useQueueSettingsStore().batchCount
+        const queueNodeIds = getSelectedNodes()
+          .filter((node) => node.constructor.nodeData?.output_node)
+          .map((node) => node.id)
+        if (queueNodeIds.length === 0) {
+          toastStore.add({
+            severity: 'error',
+            summary: t('toastMessages.nothingToQueue'),
+            detail: t('toastMessages.pleaseSelectOutputNodes'),
+            life: 3000
+          })
+          return
+        }
+        await app.queuePrompt(0, batchCount, queueNodeIds)
       }
     },
     {
@@ -619,19 +658,19 @@ export function useCoreCommands(): ComfyCommand[] {
     {
       id: 'Comfy.Manager.CustomNodesManager',
       icon: 'pi pi-puzzle',
-      label: 'Custom Nodes Manager',
+      label: 'Toggle the Custom Nodes Manager',
       versionAdded: '1.12.10',
       function: () => {
-        dialogService.showManagerDialog()
+        dialogService.toggleManagerDialog()
       }
     },
     {
       id: 'Comfy.Manager.ToggleManagerProgressDialog',
       icon: 'pi pi-spinner',
-      label: 'Toggle Progress Dialog',
+      label: 'Toggle the Custom Nodes Manager Progress Bar',
       versionAdded: '1.13.9',
       function: () => {
-        dialogService.showManagerProgressDialog()
+        dialogService.toggleManagerProgressDialog()
       }
     },
     {
@@ -649,8 +688,36 @@ export function useCoreCommands(): ComfyCommand[] {
       label: 'Sign Out',
       versionAdded: '1.18.1',
       function: async () => {
-        await firebaseAuthService.logout()
+        await firebaseAuthActions.logout()
       }
+    },
+    {
+      id: 'Comfy.Canvas.MoveSelectedNodes.Up',
+      icon: 'pi pi-arrow-up',
+      label: 'Move Selected Nodes Up',
+      versionAdded: moveSelectedNodesVersionAdded,
+      function: () => moveSelectedNodes(([x, y], gridSize) => [x, y - gridSize])
+    },
+    {
+      id: 'Comfy.Canvas.MoveSelectedNodes.Down',
+      icon: 'pi pi-arrow-down',
+      label: 'Move Selected Nodes Down',
+      versionAdded: moveSelectedNodesVersionAdded,
+      function: () => moveSelectedNodes(([x, y], gridSize) => [x, y + gridSize])
+    },
+    {
+      id: 'Comfy.Canvas.MoveSelectedNodes.Left',
+      icon: 'pi pi-arrow-left',
+      label: 'Move Selected Nodes Left',
+      versionAdded: moveSelectedNodesVersionAdded,
+      function: () => moveSelectedNodes(([x, y], gridSize) => [x - gridSize, y])
+    },
+    {
+      id: 'Comfy.Canvas.MoveSelectedNodes.Right',
+      icon: 'pi pi-arrow-right',
+      label: 'Move Selected Nodes Right',
+      versionAdded: moveSelectedNodesVersionAdded,
+      function: () => moveSelectedNodes(([x, y], gridSize) => [x + gridSize, y])
     }
   ]
 

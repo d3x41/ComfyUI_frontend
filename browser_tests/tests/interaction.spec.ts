@@ -1,6 +1,12 @@
 import { expect } from '@playwright/test'
+import { Position } from '@vueuse/core'
 
-import { comfyPageFixture as test } from '../fixtures/ComfyPage'
+import {
+  type ComfyPage,
+  comfyPageFixture as test,
+  testComfySnapToGridGridSize
+} from '../fixtures/ComfyPage'
+import { type NodeReference } from '../fixtures/utils/litegraphUtils'
 
 test.describe('Item Interaction', () => {
   test('Can select/delete all items', async ({ comfyPage }) => {
@@ -57,8 +63,10 @@ test.describe('Node Interaction', () => {
       await expect(comfyPage.canvas).toHaveScreenshot('selected-node2.png')
     })
 
-    test('Can drag-select nodes with Meta (mac)', async ({ comfyPage }) => {
-      const clipNodes = await comfyPage.getNodeRefsByType('CLIPTextEncode')
+    const dragSelectNodes = async (
+      comfyPage: ComfyPage,
+      clipNodes: NodeReference[]
+    ) => {
       const clipNode1Pos = await clipNodes[0].getPosition()
       const clipNode2Pos = await clipNodes[1].getPosition()
       const offset = 64
@@ -74,9 +82,66 @@ test.describe('Node Interaction', () => {
         }
       )
       await comfyPage.page.keyboard.up('Meta')
+    }
+
+    test('Can drag-select nodes with Meta (mac)', async ({ comfyPage }) => {
+      const clipNodes = await comfyPage.getNodeRefsByType('CLIPTextEncode')
+      await dragSelectNodes(comfyPage, clipNodes)
       expect(await comfyPage.getSelectedGraphNodesCount()).toBe(
         clipNodes.length
       )
+    })
+
+    test('Can move selected nodes using the Comfy.Canvas.MoveSelectedNodes.{Up|Down|Left|Right} commands', async ({
+      comfyPage
+    }) => {
+      const clipNodes = await comfyPage.getNodeRefsByType('CLIPTextEncode')
+      const getPositions = () =>
+        Promise.all(clipNodes.map((node) => node.getPosition()))
+      const testDirection = async ({
+        direction,
+        expectedPosition
+      }: {
+        direction: string
+        expectedPosition: (originalPosition: Position) => Position
+      }) => {
+        const originalPositions = await getPositions()
+        await dragSelectNodes(comfyPage, clipNodes)
+        await comfyPage.executeCommand(
+          `Comfy.Canvas.MoveSelectedNodes.${direction}`
+        )
+        await comfyPage.canvas.press(`Control+Arrow${direction}`)
+        const newPositions = await getPositions()
+        expect(newPositions).toEqual(originalPositions.map(expectedPosition))
+      }
+      await testDirection({
+        direction: 'Down',
+        expectedPosition: (originalPosition) => ({
+          ...originalPosition,
+          y: originalPosition.y + testComfySnapToGridGridSize
+        })
+      })
+      await testDirection({
+        direction: 'Right',
+        expectedPosition: (originalPosition) => ({
+          ...originalPosition,
+          x: originalPosition.x + testComfySnapToGridGridSize
+        })
+      })
+      await testDirection({
+        direction: 'Up',
+        expectedPosition: (originalPosition) => ({
+          ...originalPosition,
+          y: originalPosition.y - testComfySnapToGridGridSize
+        })
+      })
+      await testDirection({
+        direction: 'Left',
+        expectedPosition: (originalPosition) => ({
+          ...originalPosition,
+          x: originalPosition.x - testComfySnapToGridGridSize
+        })
+      })
     })
   })
 
@@ -666,6 +731,12 @@ test.describe('Load workflow', () => {
       expect(activeWorkflowName).toEqual(workflowPathB)
     })
   })
+
+  test('Auto fit view after loading workflow', async ({ comfyPage }) => {
+    await comfyPage.setSetting('Comfy.EnableWorkflowViewRestore', false)
+    await comfyPage.loadWorkflow('single_ksampler')
+    await expect(comfyPage.canvas).toHaveScreenshot('single_ksampler_fit.png')
+  })
 })
 
 test.describe('Load duplicate workflow', () => {
@@ -681,5 +752,44 @@ test.describe('Load duplicate workflow', () => {
     await comfyPage.executeCommand('Comfy.NewBlankWorkflow')
     await comfyPage.loadWorkflow('single_ksampler')
     expect(await comfyPage.getGraphNodesCount()).toBe(1)
+  })
+})
+
+test.describe('Viewport settings', () => {
+  test.beforeEach(async ({ comfyPage }) => {
+    await comfyPage.setSetting('Comfy.UseNewMenu', 'Top')
+    await comfyPage.setSetting('Comfy.Workflow.WorkflowTabsPosition', 'Topbar')
+
+    await comfyPage.setupWorkflowsDirectory({})
+  })
+
+  test('Keeps viewport settings when changing tabs', async ({
+    comfyPage,
+    comfyMouse
+  }) => {
+    // Screenshot the canvas element
+    await comfyPage.menu.topbar.saveWorkflow('Workflow A')
+    await expect(comfyPage.canvas).toHaveScreenshot('viewport-workflow-a.png')
+
+    // Save workflow as a new file, then zoom out before screen shot
+    await comfyPage.menu.topbar.saveWorkflowAs('Workflow B')
+    await comfyMouse.move(comfyPage.emptySpace)
+    for (let i = 0; i < 4; i++) {
+      await comfyMouse.wheel(0, 60)
+    }
+    await expect(comfyPage.canvas).toHaveScreenshot('viewport-workflow-b.png')
+
+    const tabA = comfyPage.menu.topbar.getWorkflowTab('Workflow A')
+    const tabB = comfyPage.menu.topbar.getWorkflowTab('Workflow B')
+
+    // Go back to Workflow A
+    await tabA.click()
+    await comfyPage.nextFrame()
+    await expect(comfyPage.canvas).toHaveScreenshot('viewport-workflow-a.png')
+
+    // And back to Workflow B
+    await tabB.click()
+    await comfyPage.nextFrame()
+    await expect(comfyPage.canvas).toHaveScreenshot('viewport-workflow-b.png')
   })
 })

@@ -3,8 +3,9 @@ import dotenv from 'dotenv'
 import IconsResolver from 'unplugin-icons/resolver'
 import Icons from 'unplugin-icons/vite'
 import Components from 'unplugin-vue-components/vite'
-import { defineConfig } from 'vite'
-import type { UserConfigExport } from 'vitest/config'
+import { type UserConfig, defineConfig } from 'vite'
+import { createHtmlPlugin } from 'vite-plugin-html'
+import vueDevTools from 'vite-plugin-vue-devtools'
 
 import {
   addElementVnodeExportPlugin,
@@ -19,6 +20,7 @@ const SHOULD_MINIFY = process.env.ENABLE_MINIFY === 'true'
 // vite dev server will listen on all addresses, including LAN and public addresses
 const VITE_REMOTE_DEV = process.env.VITE_REMOTE_DEV === 'true'
 const DISABLE_TEMPLATES_PROXY = process.env.DISABLE_TEMPLATES_PROXY === 'true'
+const DISABLE_VUE_PLUGINS = process.env.DISABLE_VUE_PLUGINS === 'true'
 
 const DEV_SERVER_COMFYUI_URL =
   process.env.DEV_SERVER_COMFYUI_URL || 'http://127.0.0.1:8188'
@@ -53,6 +55,18 @@ export default defineConfig({
         target: DEV_SERVER_COMFYUI_URL
       },
 
+      // Proxy extension assets (images/videos) under /extensions to the ComfyUI backend
+      '/extensions': {
+        target: DEV_SERVER_COMFYUI_URL,
+        changeOrigin: true
+      },
+
+      // Proxy docs markdown from backend
+      '/docs': {
+        target: DEV_SERVER_COMFYUI_URL,
+        changeOrigin: true
+      },
+
       ...(!DISABLE_TEMPLATES_PROXY
         ? {
             '/templates': {
@@ -69,7 +83,9 @@ export default defineConfig({
   },
 
   plugins: [
-    vue(),
+    ...(!DISABLE_VUE_PLUGINS
+      ? [vueDevTools(), vue(), createHtmlPlugin({})]
+      : [vue()]),
     comfyAPIPlugin(IS_DEV),
     generateImportMapPlugin([
       { name: 'vue', pattern: /[\\/]node_modules[\\/]vue[\\/]/ },
@@ -137,4 +153,4 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['@comfyorg/litegraph', '@comfyorg/comfyui-electron-types']
   }
-}) as UserConfigExport
+}) satisfies UserConfig as UserConfig

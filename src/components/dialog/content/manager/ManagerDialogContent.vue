@@ -55,6 +55,7 @@
             />
             <div v-else class="h-full" @click="handleGridContainerClick">
               <VirtualGrid
+                id="results-grid"
                 :items="resultsWithKeys"
                 :buffer-rows="3"
                 :grid-style="GRID_STYLE"
@@ -92,7 +93,14 @@
 import { whenever } from '@vueuse/core'
 import { merge } from 'lodash'
 import Button from 'primevue/button'
-import { computed, onUnmounted, ref, watch } from 'vue'
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  onUnmounted,
+  ref,
+  watch
+} from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import ContentDivider from '@/components/common/ContentDivider.vue'
@@ -105,6 +113,7 @@ import PackCard from '@/components/dialog/content/manager/packCard/PackCard.vue'
 import RegistrySearchBar from '@/components/dialog/content/manager/registrySearchBar/RegistrySearchBar.vue'
 import GridSkeleton from '@/components/dialog/content/manager/skeleton/GridSkeleton.vue'
 import { useResponsiveCollapse } from '@/composables/element/useResponsiveCollapse'
+import { useManagerStatePersistence } from '@/composables/manager/useManagerStatePersistence'
 import { useInstalledPacks } from '@/composables/nodePack/useInstalledPacks'
 import { usePackUpdateStatus } from '@/composables/nodePack/usePackUpdateStatus'
 import { useWorkflowPacks } from '@/composables/nodePack/useWorkflowPacks'
@@ -115,13 +124,15 @@ import type { TabItem } from '@/types/comfyManagerTypes'
 import { ManagerTab } from '@/types/comfyManagerTypes'
 import { components } from '@/types/comfyRegistryTypes'
 
-const { initialTab = ManagerTab.All } = defineProps<{
-  initialTab: ManagerTab
+const { initialTab } = defineProps<{
+  initialTab?: ManagerTab
 }>()
 
 const { t } = useI18n()
 const comfyManagerStore = useComfyManagerStore()
 const { getPackById } = useComfyRegistryStore()
+const persistedState = useManagerStatePersistence()
+const initialState = persistedState.loadStoredState()
 
 const GRID_STYLE = {
   display: 'grid',
@@ -155,8 +166,10 @@ const tabs = ref<TabItem[]>([
     icon: 'pi-sync'
   }
 ])
+
+const initialTabId = initialTab ?? initialState.selectedTabId
 const selectedTab = ref<TabItem>(
-  tabs.value.find((tab) => tab.id === initialTab) || tabs.value[0]
+  tabs.value.find((tab) => tab.id === initialTabId) || tabs.value[0]
 )
 
 const {
@@ -167,7 +180,11 @@ const {
   searchMode,
   sortField,
   suggestions
-} = useRegistrySearch()
+} = useRegistrySearch({
+  initialSortField: initialState.sortField,
+  initialSearchMode: initialState.searchMode,
+  initialSearchQuery: initialState.searchQuery
+})
 pageNumber.value = 0
 const onApproachEnd = () => {
   pageNumber.value++
@@ -199,6 +216,10 @@ const {
 const filterMissingPacks = (packs: components['schemas']['Node'][]) =>
   packs.filter((pack) => !comfyManagerStore.isPackInstalled(pack.id))
 
+whenever(selectedTab, () => {
+  pageNumber.value = 0
+})
+
 const isUpdateAvailableTab = computed(
   () => selectedTab.value?.id === ManagerTab.UpdateAvailable
 )
@@ -227,7 +248,11 @@ watch(
 
     if (!isEmptySearch.value) {
       displayPacks.value = filterOutdatedPacks(installedPacks.value)
-    } else if (!installedPacks.value.length) {
+    } else if (
+      !installedPacks.value.length &&
+      !installedPacksReady.value &&
+      !isLoadingInstalled.value
+    ) {
       await startFetchInstalled()
     } else {
       displayPacks.value = filterOutdatedPacks(installedPacks.value)
@@ -403,20 +428,57 @@ const handleGridContainerClick = (event: MouseEvent) => {
 
 const hasMultipleSelections = computed(() => selectedNodePacks.value.length > 1)
 
+// Track the last pack ID for which we've fetched full registry data
+const lastFetchedPackId = ref<string | null>(null)
+
+// Whenever a single pack is selected, fetch its full info once
 whenever(selectedNodePack, async () => {
   // Cancel any in-flight requests from previously selected node pack
   getPackById.cancel()
-
-  if (!selectedNodePack.value?.id) return
-
   // If only a single node pack is selected, fetch full node pack info from registry
+  const pack = selectedNodePack.value
+  if (!pack?.id) return
   if (hasMultipleSelections.value) return
-  const data = await getPackById.call(selectedNodePack.value.id)
-
-  if (data?.id === selectedNodePack.value?.id) {
-    // If selected node hasn't changed since request, merge registry & Algolia data
-    selectedNodePacks.value = [merge(selectedNodePack.value, data)]
+  // Only fetch if we haven't already for this pack
+  if (lastFetchedPackId.value === pack.id) return
+  const data = await getPackById.call(pack.id)
+  // If selected node hasn't changed since request, merge registry & Algolia data
+  if (data?.id === pack.id) {
+    lastFetchedPackId.value = pack.id
+    const mergedPack = merge({}, pack, data)
+    // Update the pack in current selection without changing selection state
+    const packIndex = selectedNodePacks.value.findIndex(
+      (p) => p.id === mergedPack.id
+    )
+    if (packIndex !== -1) {
+      selectedNodePacks.value.splice(packIndex, 1, mergedPack)
+    }
+    // Replace pack in displayPacks so that children receive a fresh prop reference
+    const idx = displayPacks.value.findIndex((p) => p.id === mergedPack.id)
+    if (idx !== -1) {
+      displayPacks.value.splice(idx, 1, mergedPack)
+    }
   }
+})
+
+let gridContainer: HTMLElement | null = null
+onMounted(() => {
+  gridContainer = document.getElementById('results-grid')
+})
+watch(searchQuery, () => {
+  gridContainer ??= document.getElementById('results-grid')
+  if (gridContainer) {
+    gridContainer.scrollTop = 0
+  }
+})
+
+onBeforeUnmount(() => {
+  persistedState.persistState({
+    selectedTabId: selectedTab.value?.id,
+    searchQuery: searchQuery.value,
+    searchMode: searchMode.value,
+    sortField: sortField.value
+  })
 })
 
 onUnmounted(() => {
