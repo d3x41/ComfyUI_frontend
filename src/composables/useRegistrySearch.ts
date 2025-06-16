@@ -1,76 +1,54 @@
 import { watchDebounced } from '@vueuse/core'
-import type { Hit } from 'algoliasearch/dist/lite/browser'
-import { memoize, orderBy } from 'lodash'
+import { orderBy } from 'lodash'
 import { computed, ref, watch } from 'vue'
 
-import {
-  AlgoliaNodePack,
-  SearchAttribute,
-  useAlgoliaSearchService
-} from '@/services/algoliaSearchService'
-import type { NodesIndexSuggestion } from '@/services/algoliaSearchService'
+import { DEFAULT_PAGE_SIZE } from '@/constants/searchConstants'
+import { useRegistrySearchGateway } from '@/services/gateway/registrySearchGateway'
+import type { SearchAttribute } from '@/types/algoliaTypes'
 import { SortableAlgoliaField } from '@/types/comfyManagerTypes'
+import type { components } from '@/types/comfyRegistryTypes'
+import type { QuerySuggestion, SearchMode } from '@/types/searchServiceTypes'
 
-const SEARCH_DEBOUNCE_TIME = 256
-const DEFAULT_PAGE_SIZE = 64
+type RegistryNodePack = components['schemas']['Node']
+
+const SEARCH_DEBOUNCE_TIME = 320
 const DEFAULT_SORT_FIELD = SortableAlgoliaField.Downloads // Set in the index configuration
-
-const SORT_DIRECTIONS: Record<SortableAlgoliaField, 'asc' | 'desc'> = {
-  [SortableAlgoliaField.Downloads]: 'desc',
-  [SortableAlgoliaField.Created]: 'desc',
-  [SortableAlgoliaField.Updated]: 'desc',
-  [SortableAlgoliaField.Publisher]: 'asc',
-  [SortableAlgoliaField.Name]: 'asc'
-}
-
-const isDateField = (field: SortableAlgoliaField): boolean =>
-  field === SortableAlgoliaField.Created ||
-  field === SortableAlgoliaField.Updated
 
 /**
  * Composable for managing UI state of Comfy Node Registry search.
  */
-export function useRegistrySearch() {
+export function useRegistrySearch(
+  options: {
+    initialSortField?: string
+    initialSearchMode?: SearchMode
+    initialSearchQuery?: string
+    initialPageNumber?: number
+  } = {}
+) {
+  const {
+    initialSortField = DEFAULT_SORT_FIELD,
+    initialSearchMode = 'packs',
+    initialSearchQuery = '',
+    initialPageNumber = 0
+  } = options
+
   const isLoading = ref(false)
-  const sortField = ref<SortableAlgoliaField>(SortableAlgoliaField.Downloads)
-  const searchMode = ref<'nodes' | 'packs'>('packs')
+  const sortField = ref<string>(initialSortField)
+  const searchMode = ref<SearchMode>(initialSearchMode)
   const pageSize = ref(DEFAULT_PAGE_SIZE)
-  const pageNumber = ref(0)
-  const searchQuery = ref('')
-  const results = ref<AlgoliaNodePack[]>([])
-  const suggestions = ref<NodesIndexSuggestion[]>([])
+  const pageNumber = ref(initialPageNumber)
+  const searchQuery = ref(initialSearchQuery)
+  const searchResults = ref<RegistryNodePack[]>([])
+  const suggestions = ref<QuerySuggestion[]>([])
 
   const searchAttributes = computed<SearchAttribute[]>(() =>
     searchMode.value === 'nodes' ? ['comfy_nodes'] : ['name', 'description']
   )
 
-  const resultsAsRegistryPacks = computed(() =>
-    results.value ? results.value.map(algoliaToRegistry) : []
-  )
-  const resultsAsNodes = computed(() =>
-    results.value
-      ? results.value.reduce(
-          (acc, hit) => acc.concat(hit.comfy_nodes),
-          [] as string[]
-        )
-      : []
-  )
+  const searchGateway = useRegistrySearchGateway()
 
-  const { searchPacks, toRegistryPack } = useAlgoliaSearchService()
-
-  const algoliaToRegistry = memoize(
-    toRegistryPack,
-    (algoliaNode: AlgoliaNodePack) => algoliaNode.id
-  )
-  const getSortValue = (pack: Hit<AlgoliaNodePack>) => {
-    if (isDateField(sortField.value)) {
-      const value = pack[sortField.value]
-      return value ? new Date(value).getTime() : 0
-    } else {
-      const value = pack[sortField.value]
-      return value ?? 0
-    }
-  }
+  const { searchPacks, clearSearchCache, getSortValue, getSortableFields } =
+    searchGateway
 
   const updateSearchResults = async (options: { append?: boolean }) => {
     isLoading.value = true
@@ -90,17 +68,22 @@ export function useRegistrySearch() {
 
     // Results are sorted by the default field to begin with -- so don't manually sort again
     if (sortField.value && sortField.value !== DEFAULT_SORT_FIELD) {
+      // Get the sort direction from the provider's sortable fields
+      const sortableFields = getSortableFields()
+      const fieldConfig = sortableFields.find((f) => f.id === sortField.value)
+      const direction = fieldConfig?.direction || 'desc'
+
       sortedPacks = orderBy(
         nodePacks,
-        [getSortValue],
-        [SORT_DIRECTIONS[sortField.value]]
+        [(pack) => getSortValue(pack, sortField.value)],
+        [direction]
       )
     }
 
-    if (options.append && results.value?.length) {
-      results.value = results.value.concat(sortedPacks)
+    if (options.append && searchResults.value?.length) {
+      searchResults.value = searchResults.value.concat(sortedPacks)
     } else {
-      results.value = sortedPacks
+      searchResults.value = sortedPacks
     }
     suggestions.value = querySuggestions
     isLoading.value = false
@@ -116,6 +99,10 @@ export function useRegistrySearch() {
     immediate: true
   })
 
+  const sortOptions = computed(() => {
+    return getSortableFields()
+  })
+
   return {
     isLoading,
     pageNumber,
@@ -124,7 +111,8 @@ export function useRegistrySearch() {
     searchMode,
     searchQuery,
     suggestions,
-    searchResults: resultsAsRegistryPacks,
-    nodeSearchResults: resultsAsNodes
+    searchResults,
+    sortOptions,
+    clearCache: clearSearchCache
   }
 }

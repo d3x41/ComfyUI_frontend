@@ -1,4 +1,3 @@
-import ApiNodesNewsContent from '@/components/dialog/content/ApiNodesNewsContent.vue'
 import ApiNodesSignInContent from '@/components/dialog/content/ApiNodesSignInContent.vue'
 import ConfirmationDialogContent from '@/components/dialog/content/ConfirmationDialogContent.vue'
 import ErrorDialogContent from '@/components/dialog/content/ErrorDialogContent.vue'
@@ -22,7 +21,6 @@ import TemplateWorkflowsDialogHeader from '@/components/templates/TemplateWorkfl
 import { t } from '@/i18n'
 import type { ExecutionErrorWsMessage } from '@/schemas/apiSchema'
 import { type ShowDialogOptions, useDialogStore } from '@/stores/dialogStore'
-import { ManagerTab } from '@/types/comfyManagerTypes'
 
 export type ConfirmationDialogType =
   | 'default'
@@ -130,16 +128,14 @@ export const useDialogService = () => {
   }
 
   function showManagerDialog(
-    props: InstanceType<typeof ManagerDialogContent>['$props'] = {
-      initialTab: ManagerTab.All
-    }
+    props: InstanceType<typeof ManagerDialogContent>['$props'] = {}
   ) {
     dialogStore.showDialog({
       key: 'global-manager',
       component: ManagerDialogContent,
       headerComponent: ManagerHeader,
       dialogComponentProps: {
-        closable: false,
+        closable: true,
         pt: {
           header: { class: '!p-0 !m-0' },
           content: { class: '!px-0 h-[83vh] w-[90vw] overflow-y-hidden' }
@@ -381,29 +377,41 @@ export const useDialogService = () => {
   }
 
   /**
-   * Shows a dialog for the API nodes news.
-   * TODO: Remove the news dialog on next major feature release.
+   * Shows a dialog from a third party extension.
+   * @param options - The dialog options.
+   * @param options.key - The dialog key.
+   * @param options.title - The dialog title.
+   * @param options.headerComponent - The dialog header component.
+   * @param options.footerComponent - The dialog footer component.
+   * @param options.component - The dialog component.
+   * @param options.props - The dialog props.
+   * @returns The dialog instance and a function to close the dialog.
    */
-  function showApiNodesNewsDialog() {
-    if (localStorage.getItem('api-nodes-news-seen') === 'true') {
-      return
+  function showExtensionDialog(options: ShowDialogOptions & { key: string }) {
+    return {
+      dialog: dialogStore.showExtensionDialog(options),
+      closeDialog: () => dialogStore.closeDialog({ key: options.key })
     }
+  }
 
-    return dialogStore.showDialog({
-      key: 'api-nodes-news',
-      component: ApiNodesNewsContent,
-      props: {
-        dismissableMask: true,
-        onClose: () => {
-          dialogStore.closeDialog({ key: 'api-nodes-news' })
-          localStorage.setItem('api-nodes-news-seen', 'true')
-        }
-      },
-      dialogComponentProps: {
-        closable: false,
-        position: 'bottomright'
-      }
-    })
+  function toggleManagerDialog(
+    props?: InstanceType<typeof ManagerDialogContent>['$props']
+  ) {
+    if (dialogStore.isDialogOpen('global-manager')) {
+      dialogStore.closeDialog({ key: 'global-manager' })
+    } else {
+      showManagerDialog(props)
+    }
+  }
+
+  function toggleManagerProgressDialog(
+    props?: InstanceType<typeof ManagerProgressDialogContent>['$props']
+  ) {
+    if (dialogStore.isDialogOpen('global-manager-progress-dialog')) {
+      dialogStore.closeDialog({ key: 'global-manager-progress-dialog' })
+    } else {
+      showManagerProgressDialog({ props })
+    }
   }
 
   return {
@@ -421,8 +429,10 @@ export const useDialogService = () => {
     showSignInDialog,
     showTopUpCreditsDialog,
     showUpdatePasswordDialog,
-    showApiNodesNewsDialog,
+    showExtensionDialog,
     prompt,
-    confirm
+    confirm,
+    toggleManagerDialog,
+    toggleManagerProgressDialog
   }
 }

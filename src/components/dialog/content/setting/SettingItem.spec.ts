@@ -1,6 +1,8 @@
 import { mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import PrimeVue from 'primevue/config'
+import Tag from 'primevue/tag'
+import Tooltip from 'primevue/tooltip'
 import { describe, expect, it, vi } from 'vitest'
 import { createI18n } from 'vue-i18n'
 
@@ -19,7 +21,16 @@ describe('SettingItem', () => {
   const mountComponent = (props: any, options = {}): any => {
     return mount(SettingItem, {
       global: {
-        plugins: [PrimeVue, i18n, createPinia()]
+        plugins: [PrimeVue, i18n, createPinia()],
+        components: {
+          Tag
+        },
+        directives: {
+          tooltip: Tooltip
+        },
+        stubs: {
+          'i-material-symbols:experiment-outline': true
+        }
       },
       props,
       ...options
@@ -42,5 +53,22 @@ describe('SettingItem', () => {
     expect(options).toEqual([
       { text: 'Correctly Translated', value: 'Correctly Translated' }
     ])
+  })
+
+  it('handles tooltips with @ symbols without errors', () => {
+    const wrapper = mountComponent({
+      setting: {
+        id: 'TestSetting',
+        name: 'Test Setting',
+        type: 'boolean',
+        tooltip:
+          'This will load a larger version of @mtb/markdown-parser that bundles shiki'
+      }
+    })
+
+    // Should not throw an error and tooltip should be preserved as-is
+    expect(wrapper.vm.formItem.tooltip).toBe(
+      'This will load a larger version of @mtb/markdown-parser that bundles shiki'
+    )
   })
 })

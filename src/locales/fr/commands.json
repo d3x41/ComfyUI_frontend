@@ -44,6 +44,18 @@
   "Comfy_Canvas_FitView": {
     "label": "Ajuster la vue aux nœuds sélectionnés"
   },
+  "Comfy_Canvas_MoveSelectedNodes_Down": {
+    "label": "Déplacer les nœuds sélectionnés vers le bas"
+  },
+  "Comfy_Canvas_MoveSelectedNodes_Left": {
+    "label": "Déplacer les nœuds sélectionnés vers la gauche"
+  },
+  "Comfy_Canvas_MoveSelectedNodes_Right": {
+    "label": "Déplacer les nœuds sélectionnés vers la droite"
+  },
+  "Comfy_Canvas_MoveSelectedNodes_Up": {
+    "label": "Déplacer les nœuds sélectionnés vers le haut"
+  },
   "Comfy_Canvas_ResetView": {
     "label": "Réinitialiser la vue"
   },
@@ -140,6 +152,9 @@
   "Comfy_Manager_ToggleManagerProgressDialog": {
     "label": "Basculer la boîte de dialogue de progression"
   },
+  "Comfy_MaskEditor_OpenMaskEditor": {
+    "label": "Ouvrir l'éditeur de masque pour le nœud sélectionné"
+  },
   "Comfy_NewBlankWorkflow": {
     "label": "Nouveau flux de travail vierge"
   },
@@ -154,6 +169,9 @@
   },
   "Comfy_QueuePromptFront": {
     "label": "Invite de file d'attente (avant)"
+  },
+  "Comfy_QueueSelectedOutputNodes": {
+    "label": "Mettre en file d’attente les nœuds de sortie sélectionnés"
   },
   "Comfy_Redo": {
     "label": "Refaire"

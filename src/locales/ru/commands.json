@@ -44,6 +44,18 @@
   "Comfy_Canvas_FitView": {
     "label": "Подогнать вид к выбранным нодам"
   },
+  "Comfy_Canvas_MoveSelectedNodes_Down": {
+    "label": "Переместить выбранные узлы вниз"
+  },
+  "Comfy_Canvas_MoveSelectedNodes_Left": {
+    "label": "Переместить выбранные узлы влево"
+  },
+  "Comfy_Canvas_MoveSelectedNodes_Right": {
+    "label": "Переместить выбранные узлы вправо"
+  },
+  "Comfy_Canvas_MoveSelectedNodes_Up": {
+    "label": "Переместить выбранные узлы вверх"
+  },
   "Comfy_Canvas_ResetView": {
     "label": "Сбросить вид"
   },
@@ -140,6 +152,9 @@
   "Comfy_Manager_ToggleManagerProgressDialog": {
     "label": "Переключить диалоговое окно прогресса"
   },
+  "Comfy_MaskEditor_OpenMaskEditor": {
+    "label": "Открыть редактор масок для выбранной ноды"
+  },
   "Comfy_NewBlankWorkflow": {
     "label": "Новый пустой рабочий процесс"
   },
@@ -154,6 +169,9 @@
   },
   "Comfy_QueuePromptFront": {
     "label": "Очередь запросов (передняя)"
+  },
+  "Comfy_QueueSelectedOutputNodes": {
+    "label": "Добавить выбранные выходные узлы в очередь"
   },
   "Comfy_Redo": {
     "label": "Повторить"
